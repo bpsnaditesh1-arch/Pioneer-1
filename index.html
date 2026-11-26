@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Classic Car Stereo Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--cy:#d83232;--bg:#08090b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
+html,body{width:100%;height:100%;min-height:100dvh;margin:0;background:var(--bg);overflow:hidden}
+.stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+.unit{flex:none;position:relative;width:min(100vw,calc(100dvh*1.8));aspect-ratio:1080/600;container-type:inline-size;border-radius:2.2% / 4%;
+background:linear-gradient(#202328,#0c0d10 60%,#17191c);box-shadow:0 0 0 .4cqw #000,0 2cqw 6cqw #000a;color:#9aa6b2;font-family:Arial,sans-serif}
+@media(orientation:portrait){.unit{width:min(100dvh,180vw);transform:rotate(90deg)}}
+.unit svg.sw{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.abs{position:absolute;transform:translate(-50%,-50%)}
+.logo{font:700 4.6cqw Georgia,serif;letter-spacing:.3cqw;color:#e8e8e8}
+.logo-image{position:absolute;left:50%;top:11%;transform:translate(-50%,-50%);width:14cqw;height:auto;object-fit:contain;filter:brightness(0) invert(1)}
+.device-controls{position:absolute;right:3%;top:10%;display:flex;align-items:center;gap:.6cqw;transform:translateY(-50%);z-index:9;white-space:nowrap}
+.device-btn{border:1px solid #b52828;background:#050505;color:#e8e8e8;padding:.65cqw .85cqw;border-radius:.6cqw;font:700 1.25cqw Arial,sans-serif;box-shadow:0 0 .6cqw #b5282822;cursor:pointer}
+.device-btn:active{background:#321010;color:#fff}
+.power-icon{font-size:2cqw;min-width:3cqw}
+.powered-off .lcd *{visibility:hidden!important}
+
+.tiny{font-size:1.5cqw;color:#8b97a3;white-space:nowrap}
+.b{position:absolute;transform:translate(-50%,-50%);width:10cqw;height:8cqw;background:none;border:0;color:#a6b4c2;font-size:1.8cqw;line-height:1.25;cursor:pointer;border-radius:1cqw;text-align:center}
+.b.down{background:#19b8dc33;color:#fff}
+.b b{display:block;font-size:2.8cqw;font-weight:400}
+.tab{position:absolute;width:16cqw;height:5.6cqw;border:0;border-radius:1cqw;color:#bfe8f3;font-size:1.5cqw;cursor:pointer;
+background:linear-gradient(#0e4a5a,#082a33);box-shadow:inset 0 0 0 .25cqw #19b8dc66}
+.tab.lit,.tab.down{background:linear-gradient(#37d2f0,#0d8aa8);box-shadow:inset 0 0 0 .25cqw #7ee7ff,0 0 2.5cqw #19b8dc;color:#fff}
+.tab.l{left:2.8cqw;top:21.6cqw;border-radius:.6cqw 2.4cqw 2.4cqw .6cqw}
+.tab.r{right:2.8cqw;top:21.6cqw;border-radius:2.4cqw .6cqw .6cqw 2.4cqw}
+.lcd{position:absolute;left:27%;top:26.7%;width:46%;height:31.6%;background:linear-gradient(#242a2e,#14181b);border-radius:1cqw;
+box-shadow:inset 0 0 2cqw #000,0 0 0 .3cqw #000;padding:.8cqw 1.8cqw;display:flex;flex-direction:column;justify-content:space-between;
+font-family:'Share Tech Mono',ui-monospace,Menlo,monospace;color:#e7f4ff;text-shadow:none;overflow:hidden}
+/* Dotted LED-matrix lettering, inspired by the reference stereo display */
+.lcd .l1,.lcd .l2 span,.lcd .l3{
+  color:transparent;
+  background-image:radial-gradient(circle, #ffffff 42%, transparent 48%);
+  background-size:.19cqw .19cqw;
+  background-position:0 0;
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:none;
+}
+.lcd.off .l1,.lcd.off .l2 span,.lcd.off .l3{
+  background-image:radial-gradient(circle, #ffffff 42%, transparent 48%);
+  filter:none;
+}
+.lcd.off{color:#4b565f;text-shadow:none}
+.l1{font-size:2.5cqw;display:flex;justify-content:space-between;opacity:.85;white-space:nowrap}
+.l2{font-size:5.6cqw;white-space:nowrap;overflow:hidden;line-height:1.1}
+.l2 span{display:inline-block}
+.l2 span.s{padding-left:100%;animation:mq var(--d,10s) linear infinite}
+@keyframes mq{to{transform:translateX(-100%)}}
+.l3{font-size:4.2cqw;white-space:nowrap;overflow:hidden;letter-spacing:.1cqw}
+.pre{position:absolute;top:83%;width:8.6cqw;height:4.2cqw;transform:translate(-50%,-50%) skewX(-22deg);border:0;border-radius:.6cqw;cursor:pointer;
+background:linear-gradient(#25282d,#101215);color:#9fd4e4;font-size:1.9cqw;box-shadow:inset 0 .2cqw #ffffff18,0 0 0 .2cqw #000}
+.pre span{display:inline-block;transform:skewX(22deg)}
+.pre.down{background:#19b8dc55;color:#fff}
+.pre.lit{color:#5fe3ff}
+.knob{position:absolute;left:50%;top:79.2%;width:18.5%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+border:.7cqw solid var(--cy);box-shadow:0 0 2.2cqw #19b8dccc,inset 0 0 1.4cqw #19b8dc88;background:#000;cursor:grab;touch-action:none}
+.knob i{position:absolute;inset:6%;border-radius:50%;background:repeating-conic-gradient(from 0deg,#2a2f35 0 6deg,#7a828b 12deg,#2a2f35 18deg)}
+.knob u{position:absolute;left:50%;top:7%;width:1.2cqw;height:1.2cqw;margin-left:-.6cqw;border-radius:50%;background:var(--cy);box-shadow:0 0 1cqw var(--cy)}
+.arc{position:absolute;left:50%;top:67.5%;transform:translateX(-50%);font-size:1.3cqw;color:#7f8c98;letter-spacing:.2cqw;white-space:nowrap}
+.hint{position:absolute;left:0;right:0;bottom:1%;text-align:center;font-size:1.3cqw;color:#5d6873}
+input[type=file]{display:none}
+
+/* Classic black/red styling */
+.unit{background:linear-gradient(180deg,#424448 0%,#17181a 18%,#070708 72%,#202124 100%);
+  border:1px solid #555;border-radius:2.5% / 5%;color:#c4c7cb}
+.logo{font:italic 700 4.6cqw Arial,sans-serif;letter-spacing:.15cqw;color:#d7d7d7}
+.lcd{background:linear-gradient(#202124,#090a0b);border:1px solid #48494b;
+  box-shadow:inset 0 0 1.2cqw #000,0 0 0 .35cqw #050505}
+.lcd .l1,.lcd .l2 span,.lcd .l3{background-image:radial-gradient(circle,#fff 46%,transparent 49%);
+  background-size:.19cqw .19cqw;filter:none}
+.lcd.off .l1,.lcd.off .l2 span,.lcd.off .l3{background-image:radial-gradient(circle,#62666a 46%,transparent 49%);filter:none}
+.b{color:#c6c7c9}
+.b.down{background:#d8323230;color:#fff;transform:translate(-50%,-50%) scale(.96);box-shadow:inset 0 0 .7cqw #000,0 0 .8cqw #b5282844}
+.tab{color:#f4d5d5;background:linear-gradient(#5b2020,#251010);
+  box-shadow:inset 0 0 0 .22cqw #792d2d}
+.tab.lit,.tab.down{background:linear-gradient(#e74a4a,#9e1717);
+  box-shadow:inset 0 0 0 .2cqw #ff9999;color:#fff}
+.pre{background:linear-gradient(#2b2c2e,#090909);color:#d9d9d9}
+.pre.down{background:#a92a2a;color:#fff;transform:translate(-50%,-50%) skewX(-22deg) scale(.96);box-shadow:inset 0 0 .8cqw #000,0 0 .5cqw #a72a2a}
+.pre.lit{color:#ff5555}
+.knob{border-color:#c92b2b;box-shadow:inset 0 0 .7cqw #111,0 0 0 .15cqw #5d1717;background:#080808}
+.knob i{background:repeating-conic-gradient(from 0deg,#202124 0 6deg,#77797c 12deg,#202124 18deg)}
+.knob u{background:#e33;box-shadow:none}
+.arc{color:#858585}
+.hint{color:#747474}
+.sw{stroke:#8b8b8b!important;filter:none!important}
+
+
+/* REFERENCE-INSPIRED PIONEER LAYOUT: deliberately different from the Sony layout */
+.unit{
+  background:linear-gradient(180deg,#171719 0%,#080809 12%,#000 52%,#111112 100%) !important;
+  border:2px solid #555 !important;border-radius:2.4% / 5% !important;
+  box-shadow:inset 0 2px 2px #8885,inset 0 -8px 15px #000,0 12px 30px #000 !important;
+}
+.logo{
+  left:55% !important;top:10% !important;
+  font:italic 700 3.7cqw Arial,sans-serif !important;
+  color:#bfc0c2 !important;letter-spacing:.1cqw !important;
+}
+.tiny{color:#8c8c8e !important;font-size:1.25cqw !important}
+#bSrc{left:8.8% !important;top:15% !important;color:#f04444 !important}
+#bPty{left:8.8% !important;top:31% !important}
+#bMode{left:8.8% !important;top:53% !important}
+#bCall{left:8.8% !important;top:72% !important}
+#bNext{left:92% !important;top:32% !important}
+#bPrev{left:92% !important;top:53% !important}
+#bDspl{left:92% !important;top:72% !important}
+#bXb{left:34% !important;top:46% !important;width:13cqw !important;height:7cqw !important}
+#bUsb{right:3% !important;top:17% !important;width:14cqw !important;height:6cqw !important}
+.lcd{
+  left:49% !important;top:39% !important;width:39% !important;height:34% !important;
+  padding:1cqw 1.3cqw !important;border-radius:.7cqw !important;
+  background:linear-gradient(#2b2c2e,#111213) !important;
+  border:1px solid #555 !important;box-shadow:inset 0 2px 8px #000,0 0 0 .35cqw #080808 !important;
+}
+.l1{font-size:2.1cqw !important}
+.l2{font-size:5.3cqw !important}
+.l3{font-size:3.3cqw !important}
+.knob{
+  left:23% !important;top:48% !important;width:25% !important;
+  border:.8cqw solid #b52828 !important;
+  box-shadow:0 0 0 .35cqw #171717,inset 0 0 0 .4cqw #5c1717 !important;
+  background:radial-gradient(circle,#171819 55%,#060606 70%) !important;
+}
+.knob i{inset:7% !important;background:repeating-conic-gradient(#2a2b2c 0 7deg,#6b6c6e 9deg,#252627 14deg) !important}
+.knob u{background:#e04444 !important;box-shadow:none !important}
+.arc{left:23% !important;top:70% !important;font-size:1.25cqw !important;color:#777 !important}
+.pre{top:84% !important;background:linear-gradient(#353638,#0c0d0e) !important;border:1px solid #555 !important;color:#ddd !important}
+.pre.lit{color:#f24b4b !important}
+.tab{background:linear-gradient(#4b1717,#200909) !important;color:#eee !important;box-shadow:inset 0 0 0 .2cqw #782222 !important}
+.tab.lit,.tab.down{background:linear-gradient(#f34b4b,#9b1515) !important;color:#fff !important}
+.b{color:#c8c8c8 !important}
+.b b{font-size:2.6cqw !important}
+.sw{stroke:#888 !important;filter:none !important}
+.hint{display:none !important}
+/* Dotted segments: white matrix dots, crisp/no bloom */
+.lcd .l1,.lcd .l2 span,.lcd .l3{
+ color:transparent !important;-webkit-text-fill-color:transparent !important;
+ background-image:radial-gradient(circle,#f4f4f4 43%,transparent 48%) !important;
+ background-size:.22cqw .22cqw !important;background-clip:text !important;-webkit-background-clip:text !important;
+ filter:none !important;text-shadow:none !important;
+}
+.lcd.off .l1,.lcd.off .l2 span,.lcd.off .l3{
+ background-image:radial-gradient(circle,#626262 43%,transparent 48%) !important;
+}
+
+
+#bSpotify{z-index:2;border-radius:.8cqw;background:linear-gradient(#1b5836,#092b19);
+ color:#d6ffe5;box-shadow:inset 0 0 0 .2cqw #2f8b54}
+#bSpotify.down,#bSpotify.lit{background:linear-gradient(#35bd6b,#16743c);color:white}
+
+.payoneer-mark{position:absolute;left:49%;top:12%;transform:translate(-50%,-50%);width:17cqw;height:6cqw;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none}
+.payoneer-mark img{max-width:100%;max-height:100%;object-fit:contain;filter:brightness(0) invert(1);opacity:.94}
+.system-dock{position:absolute;z-index:30;left:50%;top:22%;transform:translateX(-50%);display:flex;gap:7px;flex-wrap:wrap;justify-content:center;max-width:90%;}
+.system-dock button{background:#090a0b;color:#ddd;border:1px solid #3b3d40;border-radius:11px;padding:9px 12px;font:600 12px Arial;box-shadow:0 0 9px #000, inset 0 0 8px #222;cursor:pointer;touch-action:manipulation}
+.system-dock button:active{background:#202225;box-shadow:0 0 12px #777;transform:scale(.97)}
+#spotifyFullBtn{border-color:#1e6b3b;color:#a7f4bd}#powerBtn{border-color:#6d2424;color:#ffb0b0}
+
+/* Blacked-out cabin mode and subtle button edge lighting */
+html,body{background:#000!important}.unit{background:linear-gradient(#222324,#090909 45%,#111)!important;border-color:#333!important;box-shadow:inset 0 0 25px #000,0 0 35px #000!important}
+.b,.tab,.pre{transition:box-shadow .15s ease,background .15s ease,transform .1s ease;box-shadow:inset 0 0 7px #ffffff08,0 0 5px #000!important}
+.b:active,.tab:active,.pre:active,.b.down,.tab.down,.pre.down{box-shadow:inset 0 0 10px #ffffff18,0 0 8px #555!important;transform:translate(-50%,-50%) scale(.96)}
+.tab:active{filter:brightness(1.35)}
+body.player-sleep .unit{filter:none!important}
+body.player-sleep .unit .sw,body.player-sleep .unit .pioneer-wordmark,body.player-sleep .unit .tiny,body.player-sleep .unit .b,body.player-sleep .unit .tab,body.player-sleep .unit .pre,body.player-sleep .unit .knob,body.player-sleep .unit .arc,body.player-sleep .unit .hint{display:none!important}
+body.player-sleep .system-dock{top:5%!important}
+body.player-sleep .system-dock button:not(#sleepBtn){display:none!important}
+body.player-sleep #sleepBtn{display:flex!important}
+body.player-sleep #sleepBtn{display:flex!important}
+body.player-sleep #sleepBtn{font-size:0!important}
+body.player-sleep #sleepBtn:after{content:"☀ WAKE";font-size:1.25cqw}
+body.player-sleep .lcd{left:50%!important;top:50%!important;width:65%!important;height:42%!important;transform:translate(-50%,-50%);border-color:#333!important}
+body.player-sleep .lcd .l1{font-size:2.2cqw!important}
+body.player-sleep .lcd .l2{font-size:9cqw!important;text-align:center!important}
+body.player-sleep .lcd .l3{font-size:2.8cqw!important;text-align:center!important}
+
+/* FINAL: pure-black faceplate and neatly aligned logo controls */
+html,body,.stage{background:#000!important}
+.unit{background:#000!important;border:1px solid #202020!important;border-radius:2.4% / 5%!important;box-shadow:inset 0 0 0 1px #080808,0 0 18px #000!important}
+.system-dock{left:50%!important;top:11%!important;transform:translate(-50%,-50%)!important;display:flex!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:center!important;gap:1.1cqw!important;width:auto!important;max-width:80%!important}
+.system-dock button{min-width:9.5cqw;height:4.2cqw;padding:0 1.1cqw!important;display:flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;background:#000!important;border:1px solid #353535!important;border-radius:.55cqw!important;color:#e5e5e5!important;font-size:1.25cqw!important;box-shadow:inset 0 0 0 1px #080808!important}
+#spotifyFullBtn{border-color:#333!important;color:#ddd!important}
+#powerBtn{border-color:#333!important;color:#ddd!important}
+.system-dock button:active{background:#171717!important;transform:scale(.97)}
+.logo-image{top:11%!important;left:50%!important;width:13cqw!important;filter:brightness(0) invert(1)!important}
+.logo{color:#fff!important}
+.lcd{background:#000!important;border-color:#242424!important;box-shadow:inset 0 0 1.2cqw #000,0 0 0 .3cqw #000!important}
+.b,.tab,.pre{background:#000!important;border:1px solid #242424!important;color:#ddd!important;box-shadow:inset 0 0 4px #111!important}
+.tab.lit,.tab.down,.b.down,.pre.down{background:#151515!important;color:#fff!important;border-color:#555!important;box-shadow:0 0 6px #333!important}
+.knob{background:#000!important;box-shadow:inset 0 0 1cqw #000,0 0 0 .2cqw #161616!important}
+.knob i{background:repeating-conic-gradient(#151515 0 7deg,#424242 9deg,#151515 14deg)!important}
+.knob u{background:#ddd!important}
+.arc,.tiny{color:#777!important}
+.tab{background:#000!important}
+.tab.lit,.tab.down{background:#151515!important}
+.sw{stroke:#1d1d1d!important}
+
+
+</style>
+<style>
+/* Dial pad */
+#dial{position:absolute;left:50%;top:50%;width:40%;height:90%;transform:translate(-50%,-50%);z-index:60;display:none;flex-direction:column;gap:.8cqw;background:#000;border:1px solid #444;border-radius:1.2cqw;padding:1cqw;box-shadow:0 0 3cqw #000}
+#dial.on{display:flex}
+#dNum{height:5cqw;line-height:5cqw;text-align:center;font:3.4cqw 'Share Tech Mono',ui-monospace,monospace;color:#f2f2f2;border-bottom:1px solid #333;white-space:nowrap;overflow:hidden}
+#dNum.ph{color:#666;font-size:2cqw}
+#dial .dg{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(5,1fr);gap:.7cqw}
+#dial .dg button{background:#000;border:1px solid #353535;border-radius:.7cqw;color:#eee;font:2.6cqw Arial,sans-serif;cursor:pointer}
+#dial .dg button:active{background:#222}
+#dial .dg button[data-k=c]{border-color:#2d8a4e;color:#7dffa6;font-size:1.8cqw}
+#dial .dg button[data-k=x]{color:#ff8a8a}
+.system-dock button{min-width:8cqw!important}
+</style>
+</head>
+<body>
+<div class="stage"><div class="unit powered-off" id="unit">
+<div class="system-dock" id="systemDock">
+<button id="fullBtn" title="Fullscreen">⛶ FULL</button>
+<button id="spotifyFullBtn" title="Open Spotify">♫ SPOTIFY</button>
+<button id="sleepBtn" title="Sleep mode">☾ SLEEP</button>
+<button id="btBtn" title="Bluetooth">ᛒ BT</button>
+<button id="powerBtn" title="Power off player">⏻ POWER</button>
+</div>
+
+<svg class="sw" viewBox="0 0 1080 600" preserveAspectRatio="none" fill="none" stroke="#19b8dc" stroke-width="4" style="filter:drop-shadow(0 0 5px #19b8dc)">
+<path d="M45 48 L135 100 H945 L1035 48"/><path d="M40 530 L115 475 H430"/><path d="M1040 530 L965 475 H650"/>
+</svg>
+<div class="pioneer-wordmark" aria-label="Pioneer original logo">
+  <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Pioneer_logo.svg" alt="Original Pioneer logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+  <span style="display:none">PIONEER</span>
+</div>
+
+
+<div class="abs tiny" style="left:77%;top:16%">CLASSIC STEREO</div>
+<div class="abs tiny" style="left:77%;top:65%">4×55W</div>
+<div class="abs tiny" style="left:19%;top:16%">BT  USB  FM</div>
+
+<button class="b" id="bSrc" style="left:8.5%;top:13%"><span style="font-size:1.4cqw">⏻ OFF</span><br>SRC</button>
+<button class="b" id="bPty" style="left:8.5%;top:32%"><b>⌕</b>LIST</button>
+<button class="tab l" id="bXb">BASS BOOST</button>
+<button class="b" id="bMode" style="left:8.5%;top:54%"><b>↺</b>MODE</button>
+<button class="b" id="bCall" style="left:8.5%;top:75%"><b>✆</b>CALL</button>
+
+<button class="b" id="bNext" style="left:91.5%;top:32%"><b>⏭</b></button>
+<button class="tab r" id="bUsb">USB  ADD</button>
+<button class="tab" id="bSpotify" style="position:absolute;left:3%;top:17%;width:14cqw;height:6cqw">SPOTIFY</button>
+<button class="b" id="bPrev" style="left:91.5%;top:55%"><b>⏮</b></button>
+<button class="b" id="bDspl" style="left:91.5%;top:75%"><span style="font-size:1.4cqw">SCRL</span><br>DSPL</button>
+
+<div class="lcd off" id="lcd"><div class="l1"><span id="l1"></span><span id="l1r">ᛒ</span></div><div class="l2" id="l2box"><span id="l2"></span></div><div class="l3" id="l3"></div></div>
+
+<div class="abs tiny" style="left:18.5%;top:75.5%">ALBUM ▼</div><div class="abs tiny" style="left:28.2%;top:75.5%">ALBUM ▲</div><div class="abs tiny" style="left:38%;top:75.5%">SHUF</div>
+<div class="abs tiny" style="left:62%;top:75.5%">REP</div><div class="abs tiny" style="left:71.8%;top:75.5%">▶II</div><div class="abs tiny" style="left:81.5%;top:75.5%">⏮ 0:00</div>
+<button class="pre" id="p1" style="left:18.5%"><span>1</span></button><button class="pre" id="p2" style="left:28.2%"><span>2</span></button><button class="pre" id="p3" style="left:38%"><span>3</span></button>
+<button class="pre" id="p4" style="left:62%"><span>4</span></button><button class="pre" id="p5" style="left:71.8%"><span>5</span></button><button class="pre" id="p6" style="left:81.5%"><span>6</span></button>
+
+<div class="arc">PUSH ENTER / MENU ◂ ▸ VOL</div>
+<div class="knob" id="knob"><i></i><u id="kdot"></u></div>
+<div class="hint">Tap SRC to power on · tap USB to add songs from your device · turn the knob for volume · push it for bass / treble / balance</div>
+</div>
+<div id="dial"><div id="dNum"></div><div class="dg"><button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="*">*</button><button data-k="0">0</button><button data-k="#">#</button><button data-k="x">✕</button><button data-k="c">✆ CALL</button><button data-k="b">⌫</button></div></div>
+<input type="file" id="fFiles" accept="audio/*,.mp3,.m4a,.aac,.wav,.flac,.ogg,.opus" multiple>
+<input type="file" id="fDir" webkitdirectory multiple>
+</div>
+<script>
+(function(){
+const $=s=>document.getElementById(s);
+
+const spotifyBtn=$('bSpotify');
+if(spotifyBtn)spotifyBtn.addEventListener('click',()=>window.open('https://open.spotify.com/','_blank','noopener'));
+$('spotifyFullBtn').addEventListener('click',()=>window.open('https://open.spotify.com/','_blank','noopener'));
+$('fullBtn').addEventListener('click',async()=>{
+ try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch(e){msg('FULLSCREEN UNAVAILABLE',1600);}
+});
+$('powerBtn').addEventListener('click',()=>{vib();if(S.on){powerOff();msg('POWER OFF',1500);}else{powerOn();msg('POWER ON',1500);}});
+$('sleepBtn').addEventListener('click',()=>{vib();if(S.sleep){S.sleep=false;document.body.classList.remove('player-sleep');msg('WAKE',1000);}else{S.sleep=true;S.list=false;/* Sleep stops this player's USB/local audio only; Spotify in its own app is untouched. */au.pause();document.body.classList.add('player-sleep');msg('SLEEP',1000);}});
+$('lcd').addEventListener('click',()=>{if(S.sleep){S.sleep=false;document.body.classList.remove('player-sleep');msg('WAKE',1000);}});
+const S={on:false,tracks:[],idx:-1,vol:15,bass:0,treble:0,bal:0,xb:false,rep:1,shuf:false,param:'VOL',dsp:0,list:false,li:0,src:'USB',eq:0,msg:'',until:0,sleep:false};
+/* Persistent library: IndexedDB stores the actual audio files. */
+const DB_NAME='PioneerSongLibrary', DB_VERSION=1; let db;
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('songs'))d.createObjectStore('songs',{keyPath:'id'});if(!d.objectStoreNames.contains('settings'))d.createObjectStore('settings',{keyPath:'key'});};req.onsuccess=()=>{db=req.result;resolve(db)};req.onerror=()=>reject(req.error)})}
+function dbPut(store,v){return new Promise((resolve,reject)=>{const r=db.transaction(store,'readwrite').objectStore(store).put(v);r.onsuccess=resolve;r.onerror=()=>reject(r.error)})}
+function dbAll(store){return new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function dbGet(store,key){return new Promise((resolve,reject)=>{const r=db.transaction(store,'readonly').objectStore(store).get(key);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function saveSettings(){if(db)dbPut('settings',{key:'player',idx:S.idx,vol:S.vol,bass:S.bass,treble:S.treble,bal:S.bal,xb:S.xb,rep:S.rep,shuf:S.shuf,eq:S.eq,src:S.src}).catch(()=>{})}
+async function restoreLibrary(){try{await openDB();const [saved,settings]=await Promise.all([dbAll('songs'),dbGet('settings','player')]);if(settings)Object.assign(S,{vol:window.Android?S.vol:(settings.vol??15),bass:settings.bass??0,treble:settings.treble??0,bal:settings.bal??0,xb:settings.xb??false,rep:settings.rep??1,shuf:settings.shuf??false,eq:settings.eq??0,src:settings.src??'USB',idx:settings.idx??-1});saved.sort((a,b)=>(a.dir+'/'+a.name).localeCompare(b.dir+'/'+b.name,undefined,{numeric:true}));S.tracks=saved.map(t=>({...t,url:URL.createObjectURL(t.blob)}));if(S.idx>=S.tracks.length)S.idx=S.tracks.length-1;apply();msg(S.tracks.length?'LIBRARY RESTORED '+S.tracks.length:'READY',2500)}catch(e){msg('STORAGE UNAVAILABLE',2500);console.warn(e)}}
+
+const EQ=[['FLAT',0,0],['ROCK',5,3],['POP',2,4],['JAZZ',3,1],['VOCAL',-2,4],['HIP-HOP',7,0]];
+const au=new Audio();au.preload='auto';
+let ctx,bassF,trebF,pan,gain,an,freq;
+function initAudio(){
+ if(ctx){ctx.resume();return}
+ try{
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  const src=ctx.createMediaElementSource(au);
+  bassF=ctx.createBiquadFilter();bassF.type='lowshelf';bassF.frequency.value=110;
+  trebF=ctx.createBiquadFilter();trebF.type='highshelf';trebF.frequency.value=7000;
+  pan=ctx.createStereoPanner();gain=ctx.createGain();an=ctx.createAnalyser();an.fftSize=64;
+  freq=new Uint8Array(an.frequencyBinCount);
+  src.connect(bassF);bassF.connect(trebF);trebF.connect(pan);pan.connect(gain);gain.connect(an);an.connect(ctx.destination);
+ }catch(e){ctx=null}
+ apply();
+}
+function apply(){
+ const g=window.Android?1:Math.pow(S.vol/30,2);
+ if(ctx&&gain&&bassF&&trebF&&pan){gain.gain.value=g;bassF.gain.value=S.bass+(S.xb?8:0);trebF.gain.value=S.treble;pan.pan.value=S.bal/10}
+ else au.volume=g;
+ $('bXb').classList.toggle('lit',S.xb);
+ $('p3').classList.toggle('lit',S.shuf);$('p4').classList.toggle('lit',S.rep>0);
+}
+const pad=n=>String(n).padStart(2,'0');
+const fmt=t=>isFinite(t)?pad(Math.floor(t/60))+':'+pad(Math.floor(t%60)):'--:--';
+function msg(t,ms){S.msg=t;S.until=Date.now()+(ms||2000)}
+function vib(){try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}}
+
+/* tracks */
+async function addFiles(list){
+ const ok=[...list].filter(f=>f.type.startsWith('audio')||/\.(mp3|m4a|aac|wav|flac|ogg|opus|wma)$/i.test(f.name));
+ if(!ok.length){msg('NO AUDIO',2000);return}
+ ok.sort((a,b)=>(a.webkitRelativePath||a.name).localeCompare(b.webkitRelativePath||b.name,undefined,{numeric:true}));
+ try{if(!db)await openDB()}catch(e){msg('CANNOT SAVE SONGS',2200);return}
+ let added=0;
+ for(const f of ok){const path=f.webkitRelativePath||f.name,dir=path.split('/').slice(0,-1).join('/')||'_',id=path+'|'+f.size+'|'+f.lastModified;
+  if(S.tracks.some(t=>t.id===id))continue;
+  const track={id,name:f.name.replace(/\.[^.]+$/,''),dir,blob:f};
+  try{await dbPut('songs',track);track.url=URL.createObjectURL(f);S.tracks.push(track);added++}catch(e){msg('STORAGE FULL / ERROR',2500);console.warn(e);break}
+ }
+ if(!added){msg('ALREADY SAVED',1800);return}
+ S.tracks.sort((a,b)=>(a.dir+'/'+a.name).localeCompare(b.dir+'/'+b.name,undefined,{numeric:true}));
+ const first=S.tracks.findIndex(t=>t.id===((ok[0].webkitRelativePath||ok[0].name)+'|'+ok[0].size+'|'+ok[0].lastModified));
+ saveSettings();msg(added+' SONGS SAVED',2200);
+ if(S.on&&(S.idx<0||au.paused&&!au.src))play(Math.max(0,first));
+}
+function play(i){
+ if(!S.tracks.length)return;
+ S.idx=(i+S.tracks.length)%S.tracks.length;
+ au.src=S.tracks[S.idx].url;
+ const p=au.play();saveSettings();if(p&&p.catch)p.catch(()=>msg('TAP ▶II',2000));
+}
+function next(auto){
+ const n=S.tracks.length;if(!n)return;
+ if(auto&&S.rep===2){au.currentTime=0;au.play();return}
+ if(S.shuf&&n>1){let r;do{r=Math.floor(Math.random()*n)}while(r===S.idx);return play(r)}
+ if(S.idx+1>=n&&auto&&S.rep===0){au.pause();S.idx=n-1;au.currentTime=0;return}
+ play(S.idx+1);
+}
+function prev(){
+ if(!S.tracks.length)return;
+ if(au.currentTime>3){au.currentTime=0;return}
+ play(S.idx-1);
+}
+function album(d){
+ const T=S.tracks;if(!T.length)return;
+ const dirs=[...new Set(T.map(t=>t.dir))];
+ if(dirs.length<2){msg('NO ALBUM');return}
+ let k=(dirs.indexOf(T[Math.max(S.idx,0)].dir)+d+dirs.length)%dirs.length;
+ play(T.findIndex(t=>t.dir===dirs[k]));msg('ALBUM '+(k+1)+'/'+dirs.length);
+}
+au.addEventListener('timeupdate',()=>{if(Math.floor(au.currentTime)%5===0)saveSettings()});
+au.addEventListener('ended',()=>next(true));
+au.addEventListener('error',()=>{if(S.on){msg('ERROR',1500);setTimeout(()=>next(true),700)}});
+function toggle(){
+ if(S.idx<0){play(0);return}
+ if(au.paused){au.play().catch(()=>{});msg('PLAY')}else{au.pause();msg('PAUSE')}
+}
+
+/* power */
+let startupUntil=0, startupTimer=null;
+function powerOn(){
+ initAudio();S.on=true;S.sleep=false;$('unit').classList.remove('powered-off','sleep-mode');document.body.classList.remove('player-sleep');
+ // Show PIONEER on the main dot-matrix display for exactly 1 second, then start music.
+ startupUntil=Date.now()+1000;
+ clearTimeout(startupTimer);
+ if(S.tracks.length){
+   startupTimer=setTimeout(()=>{
+     if(!S.on||S.sleep)return;
+     if(S.idx<0||!au.src)play(Math.max(0,S.idx));else au.play().catch(()=>msg('TAP ▶II',2000));
+   },1000);
+ }
+}
+function powerOff(){clearTimeout(startupTimer);startupTimer=null;startupUntil=0;S.on=false;S.sleep=false;au.pause();S.list=false;$('unit').classList.remove('sleep-mode');$('unit').classList.add('powered-off');document.body.classList.remove('player-sleep');}
+const need=f=>()=>{if(S.on)f()};
+
+/* button binding */
+function bind(id,tap,hold,rep){
+ const el=$(id);let ht,rt,held=false;
+ const stop=()=>{clearTimeout(ht);clearInterval(rt);el.classList.remove('down')};
+ el.addEventListener('pointerdown',e=>{e.preventDefault();vib();held=false;el.classList.add('down');
+  ht=setTimeout(()=>{held=true;hold&&hold();if(rep)rt=setInterval(rep,200)},600)});
+ el.addEventListener('pointerup',()=>{const h=held;stop();if(!h&&tap)tap()});
+ el.addEventListener('pointercancel',()=>{held=true;stop()});
+}
+bind('bSrc',()=>{
+ if(!S.on){powerOn();return}
+ S.src=S.src==='USB'?'FOLDER':'USB';msg('SRC '+S.src);
+ (S.src==='USB'?$('fFiles'):$('fDir')).click();
+},()=>{if(S.on){powerOff()}});
+bind('bUsb',need(()=>{S.src='USB';$('fFiles').click()}));
+bind('bPty',need(()=>{if(!S.tracks.length){msg('NO TRACKS');return}S.list=!S.list;S.li=Math.max(S.idx,0);S.listT=Date.now()+8000}));
+bind('bXb',need(()=>{S.xb=!S.xb;apply();saveSettings();msg('BASS BOOST '+(S.xb?'ON':'OFF'))}));
+bind('bMode',need(()=>{if(NATIVE&&C.call!=='IDLE'){toggleMute();return}S.eq=(S.eq+1)%EQ.length;S.bass=EQ[S.eq][1];S.treble=EQ[S.eq][2];apply();saveSettings();msg('EQ '+EQ[S.eq][0],2000)}));
+bind('bCall',need(()=>{
+ if(!NATIVE){msg('NO PHONE',1800);return}
+ if(C.call==='RINGING'){Android.answer();msg('ANSWERING',1500)}
+ else if(C.call!=='IDLE'){Android.hangup();msg('CALL END',1500)}
+ else openDial();
+}),need(()=>{if(NATIVE&&C.call!=='IDLE'){Android.hangup();msg(C.call==='RINGING'?'REJECTED':'CALL END',1500)}}));
+bind('bNext',need(()=>next(false)),need(()=>{au.currentTime=Math.min(au.duration||0,au.currentTime+6)}),()=>{au.currentTime=Math.min(au.duration||0,au.currentTime+6)});
+bind('bPrev',need(prev),need(()=>{au.currentTime=Math.max(0,au.currentTime-6)}),()=>{au.currentTime=Math.max(0,au.currentTime-6)});
+bind('bDspl',need(()=>{S.dsp=(S.dsp+1)%3;msg(['TIME','SPECTRUM','CLOCK'][S.dsp],1200)}));
+bind('p1',need(()=>album(-1)));bind('p2',need(()=>album(1)));
+bind('p3',need(()=>{S.shuf=!S.shuf;apply();saveSettings();msg('SHUFFLE '+(S.shuf?'ON':'OFF'))}));
+bind('p4',need(()=>{S.rep=(S.rep+1)%3;apply();saveSettings();msg(['REPEAT OFF','REPEAT ALL','REPEAT 1'][S.rep])}));
+bind('p5',need(toggle));
+bind('p6',need(()=>{au.currentTime=0;msg('RESTART',1000)}));
+$('fFiles').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+$('fDir').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+
+/* knob */
+const knob=$('knob');let rot=0,drag=false,last=0,acc=0,tot=0,pT;
+const ang=e=>{const r=knob.getBoundingClientRect();return Math.atan2(e.clientY-(r.top+r.height/2),e.clientX-(r.left+r.width/2))*180/Math.PI};
+knob.addEventListener('pointerdown',e=>{drag=true;knob.setPointerCapture(e.pointerId);last=ang(e);acc=0;tot=0});
+knob.addEventListener('pointermove',e=>{if(!drag)return;let a=ang(e),d=a-last;if(d>180)d-=360;if(d<-180)d+=360;last=a;
+ rot+=d;acc+=d;tot+=Math.abs(d);$('kdot').parentNode.style.transform='translate(-50%,-50%) rotate('+rot+'deg)';
+ while(Math.abs(acc)>=14){turn(acc>0?1:-1);acc-=acc>0?14:-14}});
+const end=()=>{if(!drag)return;drag=false;if(tot<6){vib();push()}};
+knob.addEventListener('pointerup',end);knob.addEventListener('pointercancel',()=>{drag=false});
+knob.addEventListener('wheel',e=>{e.preventDefault();turn(e.deltaY<0?1:-1)},{passive:false});
+function turn(d){
+ if(!S.on)return;
+ if(S.list){S.li=(S.li+d+S.tracks.length)%S.tracks.length;S.listT=Date.now()+8000;return}
+ const p=S.param,c=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+ if(p==='VOL'){S.vol=c(S.vol+d,0,30);msg('VOL '+S.vol,1800);if(window.Android)Android.setVolume(S.vol)}
+ if(p==='BASS'){S.bass=c(S.bass+d,-10,10);msg('BASS '+(S.bass>0?'+':'')+S.bass,3500)}
+ if(p==='TREBLE'){S.treble=c(S.treble+d,-10,10);msg('TREBLE '+(S.treble>0?'+':'')+S.treble,3500)}
+ if(p==='BAL'){S.bal=c(S.bal+d,-10,10);msg('BAL '+(S.bal<0?'L'+(-S.bal):S.bal>0?'R'+S.bal:'CENTER'),3500)}
+ clearTimeout(pT);pT=setTimeout(()=>S.param='VOL',4000);
+ apply();saveSettings();
+}
+function push(){
+ if(!S.on)return;
+ if(S.list){play(S.li);S.list=false;return}
+ const o=['VOL','BASS','TREBLE','BAL'];S.param=o[(o.indexOf(S.param)+1)%4];
+ const v={VOL:'VOL '+S.vol,BASS:'BASS '+S.bass,TREBLE:'TREBLE '+S.treble,BAL:'BAL '+S.bal};
+ msg('◂ '+v[S.param]+' ▸',3500);clearTimeout(pT);pT=setTimeout(()=>S.param='VOL',4000);
+}
+
+/* display */
+let lastTitle=null;
+function setTitle(t){
+ if(t===lastTitle)return;lastTitle=t;
+ const sp=$('l2');sp.className='';sp.textContent=t;
+ requestAnimationFrame(()=>{if(sp.scrollWidth>$('l2box').clientWidth){sp.className='s';sp.style.setProperty('--d',Math.max(6,t.length*.28)+'s')}});
+}
+const blocks='▁▂▃▄▅▆▇█';
+function draw(){
+ const lcd=$('lcd'),now=Date.now(),clk=new Date().toTimeString().slice(0,5);
+ lcd.classList.toggle('off',!S.on);
+ if(S.sleep){$('l1').textContent='SLEEP MODE';$('l1r').textContent='';setTitle(clk);$('l3').textContent='SPOTIFY • MUSIC CONTINUES';return}
+  if(!S.on){$('l1').textContent='';$('l1r').textContent='';setTitle('');$('l3').textContent='';return}
+ if(NATIVE&&C.call!=='IDLE'){callScreen();return}
+ if(now<startupUntil){$('l1').textContent='';$('l1r').textContent='';setTitle('PIONEER');$('l3').textContent='';return}
+ if(S.list&&now>S.listT)S.list=false;
+ const n=S.tracks.length;
+ $('l1r').textContent='ᛒ'+(NATIVE&&C.bt?' '+C.bt.slice(0,10).toUpperCase():'')+(S.shuf?' ⇆':'')+(S.rep===2?' ⟳1':S.rep?' ⟳':'');
+ if(S.list){$('l1').textContent='TRACK LIST';setTitle(S.tracks[S.li].name);$('l3').textContent=pad(S.li+1)+'/'+pad(n);return}
+ $('l1').textContent=S.src+' '+(n?pad(S.idx+1)+'/'+pad(n):'--/--')+(au.paused&&S.idx>=0?' ❚❚':S.idx>=0?' ▶':'');
+ setTitle(n?(S.idx>=0?S.tracks[S.idx].name:'READY'):'PIONEER NO DEVICE FOUND');
+ let l3;
+ if(now<S.until)l3=S.msg;
+ else if(!n)l3='TAP USB TO ADD';
+ else if(S.dsp===0)l3=fmt(au.currentTime)+' / '+fmt(au.duration);
+ else if(S.dsp===1){
+  if(an&&!au.paused){an.getByteFrequencyData(freq);l3='';for(let i=0;i<16;i++)l3+=blocks[Math.min(7,Math.floor(freq[i+1]/32))]}
+  else l3='▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁';
+ }else l3=clk;
+ $('l3').textContent=l3;
+}
+
+/* ===== ANDROID BRIDGE: Bluetooth status, phone calls, system volume ===== */
+const NATIVE=!!window.Android;
+const C={call:'IDLE',num:'',name:'',since:0,bt:'',mute:false,dir:''};
+let resumeAfter=false,autoOn=false,dn='';
+if(NATIVE){window.open=u=>{try{Android.openUrl(String(u))}catch(e){}return null}}
+window.__nativeState=st=>{
+ const was=C.call;Object.assign(C,st);
+ if(typeof st.vol==='number'&&Math.abs(st.vol-S.vol)>2)S.vol=Math.max(0,Math.min(30,st.vol));
+ if(was==='IDLE'&&C.call!=='IDLE'){
+  if(S.sleep){S.sleep=false;document.body.classList.remove('player-sleep')}
+  if(!S.on){powerOn();clearTimeout(startupTimer);startupTimer=null;startupUntil=0;autoOn=true}
+  else if(!au.paused){resumeAfter=true;au.pause()}
+  S.list=false;
+ }
+ if(was!=='IDLE'&&C.call==='IDLE'){
+  if(autoOn){powerOff();autoOn=false}
+  else if(resumeAfter&&S.on&&!S.sleep){au.play().catch(()=>{})}
+  resumeAfter=false;
+ }
+ if(C.call!=='IDLE')$('dial').classList.remove('on');
+};
+function callScreen(){
+ const who=(C.name||C.num||'UNKNOWN').toUpperCase(),now=Date.now();
+ $('l1').textContent=C.call==='RINGING'?'INCOMING CALL':(C.dir==='OUT'?'CALLING':'IN CALL');
+ $('l1r').textContent='ᛒ'+(C.mute?' MUTE':'');
+ setTitle(who);
+ if(now<S.until)$('l3').textContent=S.msg;
+ else if(C.call==='RINGING')$('l3').textContent='CALL=ANSWER';
+ else $('l3').textContent='CALL=END '+fmt((now-C.since)/1000);
+}
+function toggleMute(){C.mute=!C.mute;Android.mute(C.mute);msg(C.mute?'MIC MUTED':'MIC ON',1500)}
+function drawDial(){const e=$('dNum');e.textContent=dn||'ENTER NUMBER';e.classList.toggle('ph',!dn)}
+function openDial(){dn='';drawDial();$('dial').classList.add('on')}
+$('dial').addEventListener('click',e=>{
+ const k=e.target.closest('[data-k]');if(!k)return;vib();const v=k.dataset.k;
+ if(v==='x')$('dial').classList.remove('on');
+ else if(v==='b')dn=dn.slice(0,-1);
+ else if(v==='c'){if(dn){Android.dial(dn);$('dial').classList.remove('on');msg('DIALING',1500)}return}
+ else if(dn.length<20)dn+=v;
+ drawDial();
+});
+$('btBtn').addEventListener('click',()=>{
+ vib();
+ if(!NATIVE){msg('APP ONLY',1500);return}
+ msg(C.bt?'BT '+C.bt.toUpperCase():'BT NOT CONNECTED',2500);
+ Android.openBtSettings();
+});
+if(NATIVE)setTimeout(()=>Android.requestState(),300);
+setInterval(draw,90);draw();apply();restoreLibrary();
+window.addEventListener('pagehide',saveSettings);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveSettings()});
+})();
+</script>
+</body>
+</html>
+
+<style>
+/* Logo and controls: clear separation so nothing overlaps */
+.pioneer-wordmark{position:absolute!important;left:50%!important;top:7.2%!important;transform:translate(-50%,-50%)!important;z-index:20!important;color:#f4f4f4!important;font-family:Arial,sans-serif!important;font-weight:900!important;font-size:5.2cqw!important;letter-spacing:.22cqw!important;line-height:1!important;text-align:center!important;text-shadow:0 1px #777,0 0 2px #fff!important;white-space:nowrap!important}
+.system-dock{top:17.5%!important;z-index:25!important;gap:1.4cqw!important}
+.system-dock button{min-width:10.8cqw!important;height:4.6cqw!important;font-size:1.35cqw!important}
+@media(orientation:portrait){.pioneer-wordmark{font-size:5.2cqw!important}}
+</style>
+
+<style>
+/* Use the genuine 1969–1998 Pioneer wordmark and keep the control row clear below it. */
+.pioneer-wordmark{position:absolute!important;left:50%!important;top:8%!important;transform:translate(-50%,-50%)!important;z-index:25!important;width:25cqw!important;height:4.8cqw!important;display:flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;color:#eee!important;font-size:4cqw!important;}
+.pioneer-wordmark img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;filter:brightness(0) invert(1)!important;opacity:1!important}
+.pioneer-wordmark span{font-family:Arial,sans-serif!important;font-weight:900!important;letter-spacing:.15cqw!important;color:#eee!important}
+.system-dock{top:17%!important;z-index:26!important}
+</style>
